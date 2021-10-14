@@ -41,8 +41,9 @@ import * as LocalPushErrors from './errors';
 import LivepushManager from './live';
 import { displayBuildLog } from './logs';
 import { getBalenaSdk, stripIndent } from '../lazy';
-import { validateUuid } from '../validation';
+import { validateLocalHostnameOrIp, validateUuid } from '../validation';
 import { openTunnel } from '../tunnel';
+import { exec } from 'child_process';
 
 const LOCAL_APPNAME = 'localapp';
 const LOCAL_RELEASEHASH = 'localrelease';
@@ -135,11 +136,33 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 		const device = await sdk.models.device.get(uuid);
 		logger.logInfo(`Opening tunnels to ${device.uuid}...`);
 
-		await openTunnel(logger, device, sdk, 48484, 'localhost', 48484);
-		await openTunnel(logger, device, sdk, 2375, 'localhost', 2375);
+		await openTunnel(logger, device, sdk, 22222, 'localhost', 22222);
+		const ssh = await exec(
+			`ssh -ACN -p 22222 -L 2375:/var/run/balena-engine.sock -L 48484:127.0.0.1:48484 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@localhost &`,
+		);
+		await new Promise((r) => setTimeout(r, 2000));
+		process.on('exit', function () {
+			ssh.kill();
+		});
 		logger.logInfo(`Opened tunnels to ${device.uuid}...`);
 
 		opts.deviceHost = 'localhost';
+	} else if (validateLocalHostnameOrIp(opts.deviceHost)) {
+		const logger = Logger.getLogger();
+		const ssh1 = await exec(
+			`ssh -ACN -p 22222 -L 22222:127.0.0.1:22222 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${opts.deviceHost} &`,
+		);
+		await new Promise((r) => setTimeout(r, 2000));
+		const ssh2 = await exec(
+			`ssh -ACN -p 22222 -L 2375:/var/run/balena-engine.sock -L 48484:127.0.0.1:48484 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@localhost &`,
+		);
+		await new Promise((r) => setTimeout(r, 2000));
+		process.on('exit', function () {
+			ssh1.kill();
+			ssh2.kill();
+		});
+		logger.logInfo(`Opened tunnels to local address ${opts.deviceHost}...`);
+		opts.deviceHost = '127.0.0.1';
 	}
 
 	// Resolve .local addresses to IP to avoid

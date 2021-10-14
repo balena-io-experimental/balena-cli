@@ -21,6 +21,7 @@ import * as cf from '../utils/common-flags';
 import { getBalenaSdk, stripIndent } from '../utils/lazy';
 import { LogMessage } from 'balena-sdk';
 import { IArg } from '@oclif/parser/lib/args';
+import { exec } from 'child_process';
 
 interface FlagsDef {
 	'max-retry'?: number;
@@ -116,9 +117,8 @@ export default class LogsCmd extends Command {
 		const { connectAndDisplayDeviceLogs, displayLogObject } = await import(
 			'../utils/device/logs'
 		);
-		const { validateDeviceAddress, validateUuid } = await import(
-			'../utils/validation'
-		);
+		const { validateDeviceAddress, validateLocalHostnameOrIp, validateUuid } =
+			await import('../utils/validation');
 		const Logger = await import('../utils/logger');
 
 		const logger = Logger.getLogger();
@@ -153,9 +153,31 @@ export default class LogsCmd extends Command {
 				const uuid = await getOnlineTargetDeviceUuid(balena, deviceAddress);
 				const device = await balena.models.device.get(uuid);
 				logger.logInfo(`Opening tunnels to ${deviceAddress}`);
-				await openTunnel(logger, device, balena, 48484, 'localhost', 48484);
+				await openTunnel(logger, device, balena, 22222, 'localhost', 22222);
+				const ssh = await exec(
+					`ssh -ACN -p 22222 -L 2375:/var/run/balena-engine.sock -L 48484:127.0.0.1:48484 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@localhost &`,
+				);
+				await new Promise((r) => setTimeout(r, 2000));
+				process.on('exit', function () {
+					ssh.kill();
+				});
 				// await openTunnel(logger, device, balena, 2375, 'localhost', 2375);
 				logger.logInfo(`Opened tunnels to ${deviceAddress}...`);
+				deviceAddress = '127.0.0.1';
+			} else if (validateLocalHostnameOrIp(deviceAddress)) {
+				const ssh1 = await exec(
+					`ssh -ACN -p 22222 -L 22222:127.0.0.1:22222 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${deviceAddress} &`,
+				);
+				await new Promise((r) => setTimeout(r, 2000));
+				const ssh2 = await exec(
+					`ssh -ACN -p 22222 -L 2375:/var/run/balena-engine.sock -L 48484:127.0.0.1:48484 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@localhost &`,
+				);
+				await new Promise((r) => setTimeout(r, 2000));
+				process.on('exit', function () {
+					ssh1.kill();
+					ssh2.kill();
+				});
+				logger.logInfo(`Opened tunnels to local address ${deviceAddress}...`);
 				deviceAddress = '127.0.0.1';
 			}
 
