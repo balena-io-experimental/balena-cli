@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type { BalenaSDK, Device } from 'balena-sdk';
-import { Server, Socket } from 'net';
+import { createServer, Server, Socket } from 'net';
 import * as tls from 'tls';
 import { TypedError } from 'typed-error';
 import { ExpectedError } from '../errors';
 import Logger = require('./logger');
+import { Client, ClientChannel } from 'ssh2';
 
 const PROXY_CONNECT_TIMEOUT_MS = 10000;
 
@@ -60,6 +61,58 @@ export const logConnection = (
 	}
 };
 
+export const socketTunnel = async (
+	logger: Logger,
+	localPort: number,
+	socketPath: string,
+) => {
+	const conn = new Client();
+	const host = '127.0.0.1';
+	const sshPort = 22222;
+
+	const server = createServer((client: Socket) => {
+		// Create a new connection to the TCP server
+		conn
+			.on('ready', () => {
+				conn.openssh_forwardOutStreamLocal(
+					socketPath,
+					(err: Error | undefined, channel: ClientChannel) => {
+						if (err) {
+							console.log('conn err:', err);
+							return conn.end();
+						}
+
+						client.pipe(channel).pipe(client);
+					},
+				);
+			})
+			.connect({
+				host,
+				port: sshPort,
+				username: 'root',
+				password: '',
+			});
+
+		client.on('error', (err: Error) => {
+			// TODO: Remove later, just for debug purposes
+			console.log('client.error: ' + err.toString());
+			conn.end();
+		});
+	});
+
+	await new Promise<Server>((resolve, reject) => {
+		server.on('close', () => {
+			conn.end();
+		});
+		server.on('error', reject);
+		server.listen(localPort, host, () => {
+			resolve(server);
+		});
+	});
+
+	logger.logInfo(` - tunnelling ${socketPath} to ${host}:${localPort}`);
+};
+
 export const openTunnel = async (
 	logger: Logger,
 	device: Device,
@@ -75,7 +128,6 @@ export const openTunnel = async (
 			sdk,
 		);
 
-		const { createServer } = await import('net');
 		const server = createServer(async (client: Socket) => {
 			try {
 				await handler(client);

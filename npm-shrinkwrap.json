@@ -2882,6 +2882,25 @@
         "@types/through": "*"
       }
     },
+    "@types/ssh2": {
+      "version": "0.5.48",
+      "resolved": "https://registry.npmjs.org/@types/ssh2/-/ssh2-0.5.48.tgz",
+      "integrity": "sha512-cmQu0gp/6RtDXe1r2xXGgi0V0TeCdueDSRMEvBX8cTRT/sSREkUpgCYZLyh+iI8Ql+VNV8Az9toQoYa/IdgHbQ==",
+      "dev": true,
+      "requires": {
+        "@types/node": "*",
+        "@types/ssh2-streams": "*"
+      }
+    },
+    "@types/ssh2-streams": {
+      "version": "0.1.9",
+      "resolved": "https://registry.npmjs.org/@types/ssh2-streams/-/ssh2-streams-0.1.9.tgz",
+      "integrity": "sha512-I2J9jKqfmvXLR5GomDiCoHrEJ58hAOmFrekfFqmCFd+A6gaEStvWnPykoWUwld1PNg4G5ag1LwdA+Lz1doRJqg==",
+      "dev": true,
+      "requires": {
+        "@types/node": "*"
+      }
+    },
     "@types/stream-to-promise": {
       "version": "2.2.1",
       "resolved": "https://registry.npmjs.org/@types/stream-to-promise/-/stream-to-promise-2.2.1.tgz",
@@ -4148,6 +4167,14 @@
           "requires": {
             "argparse": "^1.0.7",
             "esprima": "^4.0.0"
+          }
+        },
+        "ssh2": {
+          "version": "0.5.5",
+          "resolved": "https://registry.npmjs.org/ssh2/-/ssh2-0.5.5.tgz",
+          "integrity": "sha1-x3gezS7OcwSiU89iD6taXCK7IjU=",
+          "requires": {
+            "ssh2-streams": "~0.1.18"
           }
         },
         "supports-color": {
@@ -5546,6 +5573,15 @@
           "resolved": "https://registry.npmjs.org/pify/-/pify-2.3.0.tgz",
           "integrity": "sha1-7RQaasBDqEnqWISY59yosVMw6Qw="
         }
+      }
+    },
+    "cpu-features": {
+      "version": "0.0.2",
+      "resolved": "https://registry.npmjs.org/cpu-features/-/cpu-features-0.0.2.tgz",
+      "integrity": "sha512-/2yieBqvMcRj8McNzkycjW2v3OIUOibBfd2dLEJ0nWts8NobAxwiyw9phVNS6oDL8x8tz9F7uNVFEVpJncQpeA==",
+      "optional": true,
+      "requires": {
+        "nan": "^2.14.1"
       }
     },
     "cpy": {
@@ -16875,11 +16911,22 @@
       "integrity": "sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw="
     },
     "ssh2": {
-      "version": "0.5.5",
-      "resolved": "https://registry.npmjs.org/ssh2/-/ssh2-0.5.5.tgz",
-      "integrity": "sha1-x3gezS7OcwSiU89iD6taXCK7IjU=",
+      "version": "1.5.0",
+      "resolved": "https://registry.npmjs.org/ssh2/-/ssh2-1.5.0.tgz",
+      "integrity": "sha512-iUmRkhH9KGeszQwDW7YyyqjsMTf4z+0o48Cp4xOwlY5LjtbIAvyd3fwnsoUZW/hXmTCRA3yt7S/Jb9uVjErVlA==",
       "requires": {
-        "ssh2-streams": "~0.1.18"
+        "asn1": "^0.2.4",
+        "bcrypt-pbkdf": "^1.0.2",
+        "cpu-features": "0.0.2",
+        "nan": "^2.15.0"
+      },
+      "dependencies": {
+        "nan": {
+          "version": "2.15.0",
+          "resolved": "https://registry.npmjs.org/nan/-/nan-2.15.0.tgz",
+          "integrity": "sha512-8ZtvEnA2c5aYCZYd1cvgdnU6cqwixRoYg70xPLWUws5ORTa/lnw+u4amixRS/Ac5U5mQVgp9pnlSUnbNWFaWZQ==",
+          "optional": true
+        }
       }
     },
     "ssh2-streams": {
