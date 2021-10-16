@@ -40,7 +40,9 @@ import { DeviceAPI, DeviceInfo } from './api';
 import * as LocalPushErrors from './errors';
 import LivepushManager from './live';
 import { displayBuildLog } from './logs';
-import { stripIndent } from '../lazy';
+import { getBalenaSdk, stripIndent } from '../lazy';
+import { validateUuid } from '../validation';
+import { openTunnel } from '../tunnel';
 
 const LOCAL_APPNAME = 'localapp';
 const LOCAL_RELEASEHASH = 'localrelease';
@@ -122,6 +124,24 @@ async function environmentFromInput(
 }
 
 export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
+	// Set up tunnels for remote device
+	if (validateUuid(opts.deviceHost)) {
+		const logger = Logger.getLogger();
+		const sdk = getBalenaSdk();
+
+		// Ascertain device uuid
+		const { getOnlineTargetDeviceUuid } = await import('../patterns');
+		const uuid = await getOnlineTargetDeviceUuid(sdk, opts.deviceHost);
+		const device = await sdk.models.device.get(uuid);
+		logger.logInfo(`Opening tunnels to ${device.uuid}...`);
+
+		await openTunnel(logger, device, sdk, 48484, 'localhost', 48484);
+		await openTunnel(logger, device, sdk, 2375, 'localhost', 2375);
+		logger.logInfo(`Opened tunnels to ${device.uuid}...`);
+
+		opts.deviceHost = 'localhost';
+	}
+
 	// Resolve .local addresses to IP to avoid
 	// issue with Windows and rapid repeat lookups.
 	// see: https://github.com/balena-io/balena-cli/issues/1518
@@ -145,7 +165,7 @@ export async function deployToDevice(opts: DeviceDeployOptions): Promise<void> {
 		throw new ExpectedError(stripIndent`
 			Could not communicate with device supervisor at address ${opts.deviceHost}:${port}.
 			Device may not have local mode enabled. Check with:
-			  balena device local-mode <device-uuid>
+			balena device local-mode <device-uuid>
 		`);
 	}
 
